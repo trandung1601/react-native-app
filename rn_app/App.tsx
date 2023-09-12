@@ -1,118 +1,290 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
+  FlatList,
+  NativeEventEmitter,
+  NativeModules,
   SafeAreaView,
-  ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
-  useColorScheme,
+  TouchableHighlight,
+  TouchableOpacity,
   View,
 } from 'react-native';
+import BleManager, {
+  BleDisconnectPeripheralEvent,
+  BleScanCallbackType,
+  BleScanMatchMode,
+  BleScanMode,
+  Peripheral,
+} from 'react-native-ble-manager';
+import {BlePermission} from './src/bluetooth/Permission.index';
+import {Colors} from 'react-native/Libraries/NewAppScreen';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
+const BleManagerModule = NativeModules.BleManager;
+const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
+declare module 'react-native-ble-manager' {
+  // enrich local contract with custom state properties needed by App.tsx
+  interface Peripheral {
+    connected?: boolean;
+    connecting?: boolean;
+  }
 }
+const SECONDS_TO_SCAN_FOR = 7;
+const SERVICE_UUIDS: string[] = [];
+const ALLOW_DUPLICATES = true;
 
-function App(): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+const App = () => {
+  const [isScanning, setIsScanning] = useState(false);
+  const [peripherals, setPeripherals] = useState(
+    new Map<Peripheral['id'], Peripheral>(),
+  );
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  useEffect(() => {
+    /**
+        //* Initialize the BLE 
+     */
+    BleManager.start({showAlert: false, forceLegacy: true});
+  }, []);
+
+  useEffect(() => {
+    /**Initialize the BLE */
+    BleManager.start({showAlert: false, forceLegacy: true});
+
+    /**
+     */ /* Listener to handle the opeation when device is connected , disconnected Handle stop scan
+, when any value will update from BLE device
+*/
+    const listeners = [
+      bleManagerEmitter.addListener(
+        'BleManagerDiscoverPeripheral',
+        handleDiscoverPeripheral,
+      ),
+      bleManagerEmitter.addListener('BleManagerStopScan', handleStopScan),
+      bleManagerEmitter.addListener(
+        'BleManagerDisconnectPeripheral',
+        handleDisconnectedPeripheral,
+      ),
+      bleManagerEmitter.addListener(
+        'BleManagerDidUpdateValueForCharacteristic',
+        handleUpdateValueForCharacteristic,
+      ),
+    ];
+
+    /**
+     * //* Check the Bluetooth Permission For Android and  request if required.
+     */
+
+    BlePermission()
+      .then(result => {
+        enableBluetoothInDevice();
+      })
+      .catch(err => {
+        console.log(222);
+      });
+
+    return () => {
+      console.debug('component unmounting. Removing listeners...');
+      for (const listener of listeners) {
+        listener.remove();
+      }
+    };
+  }, []);
+
+  /**
+   */ /* Enable the Bluetooth Permission
+   */
+  const enableBluetoothInDevice = () => {
+    BleManager.enableBluetooth()
+      .then(() => {
+        // Success code
+        //** Start the scanning */
+      })
+      .catch(error => {
+        console.error('error---->', error);
+      });
+  };
+
+  /**
+   * //* Start the bluetooth scanning
+   */
+  const startScan = () => {
+    if (!isScanning) {
+      console.debug('[startScan] starting scan...');
+      setIsScanning(true);
+      BleManager.scan(SERVICE_UUIDS, SECONDS_TO_SCAN_FOR, ALLOW_DUPLICATES, {
+        matchMode: BleScanMatchMode.Sticky,
+        scanMode: BleScanMode.LowLatency,
+        callbackType: BleScanCallbackType.AllMatches,
+      })
+        .then(() => {
+          console.debug('[startScan] scan promise returned successfully.');
+        })
+        .catch(err => {
+          console.error('[startScan] ble scan error thrown', err);
+        });
+    }
+  };
+
+  /**
+   * //* Method to handle when Peripheral is connected.
+   */
+  const handleDiscoverPeripheral = (peripheral: Peripheral) => {
+    console.debug('[handleDiscoverPeripheral] new BLE peripheral=', peripheral);
+    if (!peripheral.name) {
+      peripheral.name = 'NO NAME';
+    }
+    addOrUpdatePeripheral(peripheral.id, peripheral);
+  };
+
+  const addOrUpdatePeripheral = (id: string, updatedPeripheral: Peripheral) => {
+    // new Map() enables changing the reference & refreshing UI.
+    // TOFIX not efficient.
+    setPeripherals(map => new Map(map.set(id, updatedPeripheral)));
+  };
+
+  /**
+   * //* Handle the bluetooth Stop scan
+   */
+  const handleStopScan = () => {
+    setIsScanning(false);
+    console.debug('[handleStopScan] scan is stopped.');
+  };
+
+  /**
+   * //* method to Handle when peripheral will disconnected
+   */
+  const handleDisconnectedPeripheral = (
+    event: BleDisconnectPeripheralEvent,
+  ) => {
+    let peripheral = peripherals.get(event.peripheral);
+    if (peripheral) {
+      console.debug(
+        `[handleDisconnectedPeripheral][${peripheral.id}] previously connected peripheral is disconnected.`,
+        event.peripheral,
+      );
+    }
+  };
+
+  /**
+   * //* Method to handle Value which we get from Peripheral Device
+   */
+  const handleUpdateValueForCharacteristic = (data: any) => {
+    // setNotifyValue('');
+    // const converteddata = bytesToString(data.value);
+    // function bytesToWritableArray(bytes) {
+    //   let value = [];
+    //   for (let index = 0; index < bytes.length; index++) {
+    //     value.push(parseInt(bytes[index], 8));
+    //   }
+    //   return value;
+    // }
+    // var arr = bytesToWritableArray(data.dataValue);
+    // function bin2String(array) {
+    //   var result = '';
+    //   for (var i = 0; i < array.length; i++) {
+    //     result += String.fromCharCode(parseInt(array[i], 2));
+    //   }
+    //   return result;
+    // }
+    // let bytesView = new Uint8Array(data.value);
+    // let str = new TextDecoder().decode(bytesView);
+    // setNotifyValue(str);
+    // alert('successfully read: ' + str);
+  };
+
+  const renderItem = ({item}: {item: Peripheral}) => {
+    const backgroundColor = item.connected ? '#069400' : Colors.white;
+    return (
+      <TouchableHighlight underlayColor="#0082FC">
+        <View style={[styles.row, {backgroundColor}]}>
+          <Text style={styles.peripheralName}>
+            {item.name} - {item?.advertising?.localName}
+            {item.connecting && ' - Connecting...'}
+          </Text>
+          <Text style={styles.rssi}>RSSI: {item.rssi}</Text>
+          <Text style={styles.peripheralId}>{item.id}</Text>
+        </View>
+      </TouchableHighlight>
+    );
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+    <SafeAreaView style={styles.container}>
+      <TouchableOpacity
+        onPress={startScan}
+        style={{
+          backgroundColor: '#007BC0',
+          padding: 16,
+          alignItems: 'center',
+          marginBottom: 10,
+        }}>
+        <Text style={{color: 'white', fontSize: 20}}>Scan devices</Text>
+      </TouchableOpacity>
+
+      {Array.from(peripherals.values()).length === 0 && (
+        <View style={styles.row}>
+          <Text style={styles.noPeripherals}>
+            No Peripherals, press "Scan Bluetooth" above.
+          </Text>
         </View>
-      </ScrollView>
+      )}
+
+      <FlatList
+        data={Array.from(peripherals.values())}
+        contentContainerStyle={{rowGap: 12}}
+        renderItem={renderItem}
+        keyExtractor={item => item.id}
+      />
     </SafeAreaView>
   );
-}
-
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
+};
 
 export default App;
+
+const boxShadow = {
+  shadowColor: '#000',
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+  shadowOpacity: 0.25,
+  shadowRadius: 3.84,
+  elevation: 5,
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  row: {
+    marginLeft: 10,
+    marginRight: 10,
+    borderRadius: 20,
+    ...boxShadow,
+  },
+  peripheralName: {
+    fontSize: 16,
+    textAlign: 'center',
+    padding: 10,
+    color: Colors.black,
+  },
+  rssi: {
+    fontSize: 12,
+    textAlign: 'center',
+    padding: 2,
+    color: Colors.black,
+  },
+  peripheralId: {
+    fontSize: 12,
+    textAlign: 'center',
+    padding: 2,
+    paddingBottom: 20,
+    color: Colors.black,
+  },
+  noPeripherals: {
+    margin: 10,
+    textAlign: 'center',
+    color: Colors.white,
+  },
+});
