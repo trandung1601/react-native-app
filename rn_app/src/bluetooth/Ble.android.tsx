@@ -1,7 +1,7 @@
 import {PermissionsAndroid, Platform} from 'react-native';
 
 const handleBleAndroidPermission = () => {
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     console.debug('[Check Ble permission]');
     console.debug('[Platform Version]: ', Platform.Version);
     if (Platform.OS === 'android' && Platform.Version >= 31) {
