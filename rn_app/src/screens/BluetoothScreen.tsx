@@ -45,7 +45,7 @@ declare module 'react-native-ble-manager' {
   }
 }
 
-const BleScan = () => {
+const BluetoothScreen = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [peripherals, setPeripherals] = useState(
     new Map<Peripheral['id'], Peripheral>(),
@@ -477,4 +477,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BleScan;
+export default BluetoothScreen;

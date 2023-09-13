@@ -1,14 +1,37 @@
-import {StyleSheet, Text, View} from 'react-native';
-import React from 'react';
+import type {RouteConfig, StackNavigationState} from '@react-navigation/core';
+import {NavigationContainer} from '@react-navigation/native';
+import {
+  createStackNavigator,
+  StackNavigationEventMap,
+  StackNavigationOptions,
+} from '@react-navigation/stack';
+import * as React from 'react';
+import {View} from 'react-native';
+import HomeScreen from './src/screens/HomeScreen';
+import BluetoothScreen from './src/screens/BluetoothScreen';
+
+export type RootStackParamList = {
+  HomeScreen: undefined;
+  BluetoothScreen: undefined;
+};
+
+const Stack = createStackNavigator<RootStackParamList>();
 
 const App = () => {
   return (
-    <View>
-      <Text>App</Text>
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen name="HomeScreen" component={HomeScreen} />
+        <Stack.Screen
+          name="BluetoothScreen"
+          component={BluetoothScreen}
+          options={{
+            headerShown: true,
+          }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 
 export default App;
-
-const styles = StyleSheet.create({});
