@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import BleManager, {
   BleDisconnectPeripheralEvent,
+  BleManagerDidUpdateValueForCharacteristicEvent,
   BleScanCallbackType,
   BleScanMatchMode,
   BleScanMode,
@@ -109,19 +110,25 @@ const App = () => {
    */
   const startScan = () => {
     if (!isScanning) {
-      console.debug('[startScan] starting scan...');
-      setIsScanning(true);
-      BleManager.scan(SERVICE_UUIDS, SECONDS_TO_SCAN_FOR, ALLOW_DUPLICATES, {
-        matchMode: BleScanMatchMode.Sticky,
-        scanMode: BleScanMode.LowLatency,
-        callbackType: BleScanCallbackType.AllMatches,
-      })
-        .then(() => {
-          console.debug('[startScan] scan promise returned successfully.');
+      // reset found peripherals before scan
+      setPeripherals(new Map<Peripheral['id'], Peripheral>());
+      try {
+        console.debug('[startScan] starting scan...');
+        setIsScanning(true);
+        BleManager.scan(SERVICE_UUIDS, SECONDS_TO_SCAN_FOR, ALLOW_DUPLICATES, {
+          matchMode: BleScanMatchMode.Sticky,
+          scanMode: BleScanMode.LowLatency,
+          callbackType: BleScanCallbackType.AllMatches,
         })
-        .catch(err => {
-          console.error('[startScan] ble scan error thrown', err);
-        });
+          .then(() => {
+            console.debug('[startScan] scan promise returned successfully.');
+          })
+          .catch(err => {
+            console.error('[startScan] ble scan error thrown', err);
+          });
+      } catch (error) {
+        console.error('[startScan] ble scan error thrown', error);
+      }
     }
   };
 
@@ -162,47 +169,44 @@ const App = () => {
         `[handleDisconnectedPeripheral][${peripheral.id}] previously connected peripheral is disconnected.`,
         event.peripheral,
       );
+      addOrUpdatePeripheral(peripheral.id, {...peripheral, connected: false});
     }
+    console.debug(
+      `[handleDisconnectedPeripheral][${event.peripheral}] disconnected.`,
+    );
   };
 
   /**
    * //* Method to handle Value which we get from Peripheral Device
    */
-  const handleUpdateValueForCharacteristic = (data: any) => {
-    // setNotifyValue('');
-    // const converteddata = bytesToString(data.value);
-    // function bytesToWritableArray(bytes) {
-    //   let value = [];
-    //   for (let index = 0; index < bytes.length; index++) {
-    //     value.push(parseInt(bytes[index], 8));
-    //   }
-    //   return value;
-    // }
-    // var arr = bytesToWritableArray(data.dataValue);
-    // function bin2String(array) {
-    //   var result = '';
-    //   for (var i = 0; i < array.length; i++) {
-    //     result += String.fromCharCode(parseInt(array[i], 2));
-    //   }
-    //   return result;
-    // }
-    // let bytesView = new Uint8Array(data.value);
-    // let str = new TextDecoder().decode(bytesView);
-    // setNotifyValue(str);
-    // alert('successfully read: ' + str);
+  const handleUpdateValueForCharacteristic = (
+    data: BleManagerDidUpdateValueForCharacteristicEvent,
+  ) => {
+    console.debug(
+      `[handleUpdateValueForCharacteristic] received data from '${data.peripheral}' with characteristic='${data.characteristic}' and value='${data.value}'`,
+    );
+  };
+
+  const togglePeripheralConnection = async (peripheral: Peripheral) => {
+    console.log(peripheral.connected);
+    if (peripheral && peripheral.connected) {
+      console.log(peripheral);
+    }
   };
 
   const renderItem = ({item}: {item: Peripheral}) => {
     const backgroundColor = item.connected ? '#069400' : Colors.white;
     return (
-      <TouchableHighlight underlayColor="#0082FC">
+      <TouchableHighlight
+        underlayColor="#0082FC"
+        onPress={() => togglePeripheralConnection(item)}>
         <View style={[styles.row, {backgroundColor}]}>
           <Text style={styles.peripheralName}>
             {item.name} - {item?.advertising?.localName}
             {item.connecting && ' - Connecting...'}
           </Text>
           <Text style={styles.rssi}>RSSI: {item.rssi}</Text>
-          <Text style={styles.peripheralId}>{item.id}</Text>
+          {/* <Text style={styles.peripheralId}>{item.id}</Text> */}
         </View>
       </TouchableHighlight>
     );
