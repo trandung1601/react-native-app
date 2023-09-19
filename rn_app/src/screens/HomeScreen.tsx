@@ -6,28 +6,40 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import React from 'react';
+import React, {useCallback} from 'react';
 import {RootStackParamList} from '../../App';
 import {StackScreenProps} from '@react-navigation/stack';
+import {Colors} from 'react-native/Libraries/NewAppScreen';
 
 interface Component {
   name?: string;
+  screen?: string;
 }
 
 const data = [
   {
     name: 'Bluetooth',
+    screen: 'BluetoothScreen',
+  },
+  {
+    name: 'Animation',
+    screen: 'AnimationScreen',
   },
 ];
 
 type HomeScreenProps = StackScreenProps<RootStackParamList, 'HomeScreen'>;
 
 const HomeScreen = ({navigation}: HomeScreenProps) => {
+  const navigationHandler = useCallback((screen: any) => {
+    navigation.navigate(screen);
+  }, []);
+
   const renderItem = ({item}: {item: Component}) => {
+    let ob = item.screen as unknown as RootStackParamList;
     return (
-      <TouchableOpacity onPress={() => navigation.push('BluetoothScreen')}>
+      <TouchableOpacity onPress={() => navigationHandler(item.screen)}>
         <View style={styles.component}>
-          <Text>{item.name}</Text>
+          <Text style={styles.name}>{item.name}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -49,6 +61,17 @@ export default HomeScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.white,
   },
-  component: {},
+  component: {
+    borderWidth: 1,
+    borderColor: '#007BC0',
+    padding: 16,
+    margin: 12,
+  },
+  name: {
+    color: 'black',
+    fontSize: 16,
+    textAlign: 'center',
+  },
 });
