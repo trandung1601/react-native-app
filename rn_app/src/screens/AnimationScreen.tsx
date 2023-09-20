@@ -1,7 +1,11 @@
-import {Button, SafeAreaView, StyleSheet, Text, View} from 'react-native';
 import React, {useEffect, useState} from 'react';
+import {Button, SafeAreaView, StyleSheet, Text, View} from 'react-native';
 import Animated, {
+  Easing,
+  interpolate,
   interpolateColor,
+  runOnJS,
+  runOnUI,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -10,15 +14,11 @@ import Animated, {
 } from 'react-native-reanimated';
 
 const AnimationScreen = () => {
-  const offsetY = useSharedValue(0);
-  const offsetX = useSharedValue(0);
-  const progress = useSharedValue(0);
   const value = 40;
   const x = useSharedValue(0);
   const y = useSharedValue(0);
   const _x = useSharedValue(0);
   const _y = useSharedValue(0);
-  const c = useSharedValue('red');
 
   const animatedStylesX = useAnimatedStyle(() => ({
     transform: [
@@ -41,70 +41,138 @@ const AnimationScreen = () => {
       },
     ],
   }));
-  const [xValua, setXValue] = useState(0);
-  const bg = useAnimatedStyle(() => {
-    console.log(y.value);
+  const [firstValua, setFirstValue] = useState(0);
+  const [secondValua, setSecondValue] = useState(0);
+  const fbg = useAnimatedStyle(() => {
     return {
-      backgroundColor: interpolateColor(y.value, [0], ['red', 'green']),
+      backgroundColor: interpolateColor(
+        firstValua,
+        [0, 1],
+        ['#ed0007', '#007bc0'],
+      ),
+      position: firstValua === 0 ? 'absolute' : undefined,
+      zIndex: firstValua === 0 ? 1 : 0,
     };
   });
-  //   useEffect(() => {
-  //     x.value = withRepeat(
-  //       withTiming(0, {duration: 1500}, isFinished => {
-  //         if (isFinished) {
-  //           x.value = withTiming(-40, {duration: 1500});
-  //         }
-  //       }),
-  //       -1,
-  //       true,
-  //     );
-  //   }, []);
 
-  const duration = {duration: 1000};
+  const sbg = useAnimatedStyle(() => {
+    return {
+      backgroundColor: interpolateColor(
+        secondValua,
+        [0, 1],
+        ['#d43694', '#38862a'],
+      ),
+      position: firstValua === 1 ? 'absolute' : undefined,
+      zIndex: firstValua === 1 ? 1 : 0,
+    };
+  });
 
-  const handlePress = () => {
-    'worklet';
-    y.value = withTiming(-value, duration, isFinished => {
-      if (isFinished) {
-        y.value = withTiming(0, duration, isFinished => {
-          if (isFinished) {
-            x.value = withTiming(-value, duration, isFinished => {
-              if (isFinished) {
-                x.value = withTiming(0, duration, isFinished => {
-                  if (isFinished) {
-                  }
-                });
-              }
-            });
-          }
-        });
-      }
-    });
+  const duration = {duration: 2000, easing: Easing.inOut(Easing.linear)};
 
-    console.debug('[background]: ', bg);
+  useEffect(() => {
+    function callee() {
+      'worklet';
+      y.value = withTiming(-value, duration, isFinished => {
+        if (isFinished) {
+          y.value = withTiming(0, duration, isFinished => {
+            if (isFinished) {
+              x.value = withTiming(-value, duration, isFinished => {
+                if (isFinished) {
+                  x.value = withTiming(0, duration, isFinished => {
+                    if (isFinished) {
+                      runOnJS(setFirstValue)(1);
+                      y.value = withTiming(-value, duration, isFinished => {
+                        if (isFinished) {
+                          y.value = withTiming(0, duration, isFinished => {
+                            if (isFinished) {
+                              x.value = withTiming(
+                                -value,
+                                duration,
+                                isFinished => {
+                                  if (isFinished) {
+                                    x.value = withTiming(
+                                      0,
+                                      duration,
+                                      isFinished => {
+                                        if (isFinished) {
+                                          runOnJS(setFirstValue)(0);
+                                          callee();
+                                        }
+                                      },
+                                    );
+                                  }
+                                },
+                              );
+                            }
+                          });
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+    callee();
 
-    // _y.value = withTiming(0, duration, isFinished => {
-    //   if (isFinished) {
-    //     _x.value = withTiming(40, duration, isFinished => {
-    //       if (isFinished) {
-    //         _x.value = withTiming(0, duration, isFinished => {
-    //           if (isFinished) {
-    //             _y.value = withTiming(40, duration);
-    //           }
-    //         });
-    //       }
-    //     });
-    //   }
-    // });
-  };
+    function call() {
+      'worklet';
+      _y.value = withTiming(value, duration, isFinished => {
+        if (isFinished) {
+          _y.value = withTiming(0, duration, isFinished => {
+            if (isFinished) {
+              _x.value = withTiming(value, duration, isFinished => {
+                if (isFinished) {
+                  _x.value = withTiming(0, duration, isFinished => {
+                    if (isFinished) {
+                      runOnJS(setSecondValue)(1);
+                      _y.value = withTiming(value, duration, isFinished => {
+                        if (isFinished) {
+                          _y.value = withTiming(0, duration, isFinished => {
+                            if (isFinished) {
+                              _x.value = withTiming(
+                                value,
+                                duration,
+                                isFinished => {
+                                  if (isFinished) {
+                                    _x.value = withTiming(
+                                      0,
+                                      duration,
+                                      isFinished => {
+                                        if (isFinished) {
+                                          runOnJS(setSecondValue)(0);
+                                          call();
+                                        }
+                                      },
+                                    );
+                                  }
+                                },
+                              );
+                            }
+                          });
+                        }
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+    call();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.box}>
-        {/* <Animated.View style={[styles.bottom, animatedStylesY]} /> */}
-        <Animated.View style={[styles.top, animatedStylesX, bg]} />
+        <Animated.View style={[styles.top, animatedStylesX, fbg]} />
+        <Animated.View style={[styles.bottom, animatedStylesY, sbg]} />
       </View>
-
-      <Button onPress={handlePress} title="Click me" />
     </SafeAreaView>
   );
 };
@@ -127,13 +195,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   top: {
-    // backgroundColor: 'green',
+    backgroundColor: 'green',
     width: 20,
     height: 20,
-    position: 'absolute',
+    zIndex: 1,
   },
   bottom: {
-    backgroundColor: 'pink',
+    backgroundColor: 'red',
     width: 20,
     height: 20,
   },

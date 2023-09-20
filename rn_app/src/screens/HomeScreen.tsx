@@ -25,6 +25,10 @@ const data = [
     name: 'Animation',
     screen: 'AnimationScreen',
   },
+  {
+    name: 'Spotify',
+    screen: 'Spotify',
+  },
 ];
 
 type HomeScreenProps = StackScreenProps<RootStackParamList, 'HomeScreen'>;
@@ -35,7 +39,6 @@ const HomeScreen = ({navigation}: HomeScreenProps) => {
   }, []);
 
   const renderItem = ({item}: {item: Component}) => {
-    let ob = item.screen as unknown as RootStackParamList;
     return (
       <TouchableOpacity onPress={() => navigationHandler(item.screen)}>
         <View style={styles.component}>
