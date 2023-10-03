@@ -1,21 +1,19 @@
-import type {RouteConfig, StackNavigationState} from '@react-navigation/core';
 import {NavigationContainer} from '@react-navigation/native';
-import {
-  createStackNavigator,
-  StackNavigationEventMap,
-  StackNavigationOptions,
-} from '@react-navigation/stack';
+import {createStackNavigator} from '@react-navigation/stack';
 import * as React from 'react';
-import HomeScreen from './src/screens/HomeScreen';
-import BluetoothScreen from './src/screens/BluetoothScreen';
+
 import AnimationScreen from './src/screens/AnimationScreen';
+import BluetoothScreen from './src/screens/BluetoothScreen';
+import HomeScreen from './src/screens/HomeScreen';
 import Spotify from './src/screens/Spotify';
+import SequenceScreen from './src/screens/SequenceScreen';
 
 export type RootStackParamList = {
   HomeScreen: undefined;
   BluetoothScreen: undefined;
   AnimationScreen: undefined;
   Spotify: undefined;
+  SequenceScreen: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -42,6 +40,13 @@ const App = () => {
         <Stack.Screen
           name="Spotify"
           component={Spotify}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="SequenceScreen"
+          component={SequenceScreen}
           options={{
             headerShown: false,
           }}

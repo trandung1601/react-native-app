@@ -29,6 +29,10 @@ const data = [
     name: 'Spotify',
     screen: 'Spotify',
   },
+  {
+    name: 'Sequence',
+    screen: 'SequenceScreen',
+  },
 ];
 
 type HomeScreenProps = StackScreenProps<RootStackParamList, 'HomeScreen'>;
