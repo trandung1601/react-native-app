@@ -1,12 +1,12 @@
 import React from 'react';
-import {Button, StyleSheet, Text, View} from 'react-native';
+import {Button, StyleSheet, View} from 'react-native';
 
 const ChainableCommand = {
   commandSequence: Array<string>(),
-  addCommand: (command: string) => {
+  addCommand: (command: any) => {
     ChainableCommand.commandSequence.push(command);
   },
-  createpromise: (command: string) => {
+  createpromise: (command: any) => {
     return new Promise<void>(resolve => {
       setTimeout(() => {
         console.log(`send ${command}`);
@@ -15,15 +15,14 @@ const ChainableCommand = {
     });
   },
   start: () => {
-    ChainableCommand.commandSequence.reduce(
-      (previousPromise: any, sequence: any) => {
-        console.log('sequence: ', sequence);
-        return previousPromise.then(() => {
-          return ChainableCommand.createpromise(sequence);
-        });
+    let call = ChainableCommand.commandSequence.reduce(
+      async (previousPromise, sequence) => {
+        await previousPromise;
+        return await ChainableCommand.createpromise(sequence);
       },
       Promise.resolve(),
     );
+    return call;
   },
 };
 

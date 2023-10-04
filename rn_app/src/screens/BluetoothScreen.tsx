@@ -2,22 +2,19 @@
  * Sample BLE React Native App
  */
 
-import React, {useState, useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
-  SafeAreaView,
-  StyleSheet,
-  View,
-  Text,
-  StatusBar,
-  NativeModules,
-  NativeEventEmitter,
-  Platform,
-  PermissionsAndroid,
   FlatList,
-  TouchableHighlight,
+  NativeEventEmitter,
+  NativeModules,
   Pressable,
+  SafeAreaView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableHighlight,
+  View,
 } from 'react-native';
-
 import {Colors} from 'react-native/Libraries/NewAppScreen';
 
 const SECONDS_TO_SCAN_FOR = 7;
@@ -123,7 +120,7 @@ const BluetoothScreen = () => {
 
   const togglePeripheralConnection = async (peripheral: Peripheral) => {
     console.debug('[togglePeripheralConnection]: ', peripheral);
-    if (peripheral && peripheral.connected) {
+    if (peripheral?.connected) {
       try {
         await BleManager.disconnect(peripheral.id);
       } catch (error) {
@@ -150,8 +147,8 @@ const BluetoothScreen = () => {
         connectedPeripherals,
       );
 
-      for (var i = 0; i < connectedPeripherals.length; i++) {
-        var peripheral = connectedPeripherals[i];
+      for (const element of connectedPeripherals) {
+        let peripheral = element;
         addOrUpdatePeripheral(peripheral.id, {...peripheral, connected: true});
       }
     } catch (error) {
@@ -235,16 +232,9 @@ const BluetoothScreen = () => {
   }
 
   useEffect(() => {
-    try {
-      BleManager.start({showAlert: false})
-        .then(() => console.debug('BleManager started.'))
-        .catch(error =>
-          console.error('BeManager could not be started.', error),
-        );
-    } catch (error) {
-      console.error('unexpected error starting BleManager.', error);
-      return;
-    }
+    BleManager.start({showAlert: false})
+      .then(() => console.debug('BleManager started.'))
+      .catch(error => console.error('BeManager could not be started.', error));
 
     const listeners = [
       bleManagerEmitter.addListener(
@@ -285,48 +275,6 @@ const BluetoothScreen = () => {
       .catch(error => {
         console.error('error---->', error);
       });
-  };
-  const handleAndroidPermissions = () => {
-    if (Platform.OS === 'android' && Platform.Version >= 31) {
-      PermissionsAndroid.requestMultiple([
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-        PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-      ]).then(result => {
-        if (result) {
-          console.debug(
-            '[handleAndroidPermissions] User accepts runtime permissions android 12+',
-          );
-        } else {
-          console.error(
-            '[handleAndroidPermissions] User refuses runtime permissions android 12+',
-          );
-        }
-      });
-    } else if (Platform.OS === 'android' && Platform.Version >= 23) {
-      PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-      ).then(checkResult => {
-        if (checkResult) {
-          console.debug(
-            '[handleAndroidPermissions] runtime permission Android <12 already OK',
-          );
-        } else {
-          PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          ).then(requestResult => {
-            if (requestResult) {
-              console.debug(
-                '[handleAndroidPermissions] User accepts runtime permission android <12',
-              );
-            } else {
-              console.error(
-                '[handleAndroidPermissions] User refuses runtime permission android <12',
-              );
-            }
-          });
-        }
-      });
-    }
   };
 
   const renderItem = ({item}: {item: Peripheral}) => {
