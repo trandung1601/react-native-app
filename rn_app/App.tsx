@@ -7,6 +7,7 @@ import BluetoothScreen from './src/screens/BluetoothScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import Spotify from './src/screens/Spotify';
 import SequenceScreen from './src/screens/SequenceScreen';
+import {SpeedOdometer} from './src/screens';
 
 export type RootStackParamList = {
   HomeScreen: undefined;
@@ -14,6 +15,7 @@ export type RootStackParamList = {
   AnimationScreen: undefined;
   Spotify: undefined;
   SequenceScreen: undefined;
+  SpeedOdometer: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -47,6 +49,13 @@ const App = () => {
         <Stack.Screen
           name="SequenceScreen"
           component={SequenceScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="SpeedOdometer"
+          component={SpeedOdometer}
           options={{
             headerShown: false,
           }}

@@ -33,6 +33,10 @@ const data = [
     name: 'Sequence',
     screen: 'SequenceScreen',
   },
+  {
+    name: 'Speed Odometer',
+    screen: 'SpeedOdometer',
+  },
 ];
 
 type HomeScreenProps = StackScreenProps<RootStackParamList, 'HomeScreen'>;

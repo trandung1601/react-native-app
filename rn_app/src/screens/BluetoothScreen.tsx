@@ -2,20 +2,9 @@
  * Sample BLE React Native App
  */
 
-import React, {useEffect, useState} from 'react';
-import {
-  FlatList,
-  NativeEventEmitter,
-  NativeModules,
-  Pressable,
-  SafeAreaView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableHighlight,
-  View,
-} from 'react-native';
-import {Colors} from 'react-native/Libraries/NewAppScreen';
+import React, { useEffect, useState } from 'react';
+import { FlatList, NativeEventEmitter, NativeModules, Pressable, SafeAreaView, StatusBar, StyleSheet, Text, TouchableHighlight, View } from 'react-native';
+import { Colors } from 'react-native/Libraries/NewAppScreen';
 
 const SECONDS_TO_SCAN_FOR = 7;
 const SERVICE_UUIDS: string[] = [];
@@ -48,12 +37,16 @@ const BluetoothScreen = () => {
     new Map<Peripheral['id'], Peripheral>(),
   );
 
-  console.debug('peripherals map updated', [...peripherals.entries()]);
-
   const addOrUpdatePeripheral = (id: string, updatedPeripheral: Peripheral) => {
     // new Map() enables changing the reference & refreshing UI.
     // TOFIX not efficient.
+
+    console.log('Peripherals......', peripherals);
+    console.log('[ID]: ', id);
+    console.log('updatedPeripheral......', updatedPeripheral);
     setPeripherals(map => new Map(map.set(id, updatedPeripheral)));
+
+    console.debug('[AFTER ADDED]: ', peripherals);
   };
 
   const startScan = () => {
@@ -91,10 +84,10 @@ const BluetoothScreen = () => {
   ) => {
     let peripheral = peripherals.get(event.peripheral);
     if (peripheral) {
-      console.debug(
-        `[handleDisconnectedPeripheral][${peripheral.id}] previously connected peripheral is disconnected.`,
-        event.peripheral,
-      );
+      // console.debug(
+      //   `[handleDisconnectedPeripheral][${peripheral.id}] previously connected peripheral is disconnected.`,
+      //   event.peripheral,
+      // );
       addOrUpdatePeripheral(peripheral.id, {...peripheral, connected: false});
     }
     console.debug(
@@ -111,15 +104,14 @@ const BluetoothScreen = () => {
   };
 
   const handleDiscoverPeripheral = (peripheral: Peripheral) => {
-    console.debug('[handleDiscoverPeripheral] new BLE peripheral=', peripheral);
-    if (!peripheral.name) {
-      peripheral.name = 'NO NAME';
+    // console.debug('[handleDiscoverPeripheral] new BLE peripheral=', peripheral);
+    if (peripheral.name ) {
+      addOrUpdatePeripheral(peripheral.id, peripheral);
     }
-    addOrUpdatePeripheral(peripheral.id, peripheral);
   };
 
   const togglePeripheralConnection = async (peripheral: Peripheral) => {
-    console.debug('[togglePeripheralConnection]: ', peripheral);
+    setIsScanning(false);
     if (peripheral?.connected) {
       try {
         await BleManager.disconnect(peripheral.id);
@@ -162,10 +154,19 @@ const BluetoothScreen = () => {
   const connectPeripheral = async (peripheral: Peripheral) => {
     try {
       if (peripheral) {
+        console.debug('[peripheral connecting....]: ', peripheral);
+        console.log('peripherals 1: ', peripherals);
         addOrUpdatePeripheral(peripheral.id, {...peripheral, connecting: true});
 
-        await BleManager.connect(peripheral.id);
+        await sleep(1000);
+        console.log('peripherals 2: ', peripherals);
+        const connected = await BleManager.connect(peripheral.id);
+        console.debug('Connected: ', connected);
         console.debug(`[connectPeripheral][${peripheral.id}] connected.`);
+        console.debug('[after peripheral connecting....]: ', {
+          'connected: ': peripheral.connected,
+          'connecting: ': peripheral.connecting,
+        });
 
         addOrUpdatePeripheral(peripheral.id, {
           ...peripheral,
@@ -177,46 +178,48 @@ const BluetoothScreen = () => {
         await sleep(900);
 
         /* Test read current RSSI value, retrieve services first */
-        const peripheralData = await BleManager.retrieveServices(peripheral.id);
-        console.debug(
-          `[connectPeripheral][${peripheral.id}] retrieved peripheral services`,
-          peripheralData,
-        );
+        // const peripheralData = await BleManager.retrieveServices(peripheral.id);
+        // console.debug(
+        //   `[connectPeripheral][${peripheral.id}] retrieved peripheral services`,
+        //   peripheralData,
+        // );
 
         const rssi = await BleManager.readRSSI(peripheral.id);
-        console.debug(
-          `[connectPeripheral][${peripheral.id}] retrieved current RSSI value: ${rssi}.`,
-        );
+        // console.debug(
+        //   `[connectPeripheral][${
+        //     peripheral.id
+        //   }] retrieved current RSSI value: ${getRssi(rssi)}.`,
+        // );
 
-        if (peripheralData.characteristics) {
-          for (let characteristic of peripheralData.characteristics) {
-            if (characteristic.descriptors) {
-              for (let descriptor of characteristic.descriptors) {
-                try {
-                  let data = await BleManager.readDescriptor(
-                    peripheral.id,
-                    characteristic.service,
-                    characteristic.characteristic,
-                    descriptor.uuid,
-                  );
-                  console.debug(
-                    `[connectPeripheral][${peripheral.id}] descriptor read as:`,
-                    data,
-                  );
-                } catch (error) {
-                  console.error(
-                    `[connectPeripheral][${peripheral.id}] failed to retrieve descriptor ${descriptor} for characteristic ${characteristic}:`,
-                    error,
-                  );
-                }
-              }
-            }
-          }
-        }
+        // if (peripheralData.characteristics) {
+        //   for (let characteristic of peripheralData.characteristics) {
+        //     if (characteristic.descriptors) {
+        //       for (let descriptor of characteristic.descriptors) {
+        //         try {
+        //           let data = await BleManager.readDescriptor(
+        //             peripheral.id,
+        //             characteristic.service,
+        //             characteristic.characteristic,
+        //             descriptor.uuid,
+        //           );
+        //           console.debug(
+        //             `[connectPeripheral][${peripheral.id}] descriptor read as:`,
+        //             data,
+        //           );
+        //         } catch (error) {
+        //           console.error(
+        //             `[connectPeripheral][${peripheral.id}] failed to retrieve descriptor ${descriptor} for characteristic ${characteristic}:`,
+        //             error,
+        //           );
+        //         }
+        //       }
+        //     }
+        //   }
+        // }
 
         let p = peripherals.get(peripheral.id);
         if (p) {
-          addOrUpdatePeripheral(peripheral.id, {...peripheral, rssi});
+          addOrUpdatePeripheral(p.id, {...p, rssi});
         }
       }
     } catch (error) {
@@ -277,8 +280,15 @@ const BluetoothScreen = () => {
       });
   };
 
+  const getRssi = (rssi: number) => {
+    return rssi
+      ? Math.pow(10, (-69 - rssi) / (10 * 2)).toFixed(2) + ' m'
+      : 'N/A';
+  };
+
   const renderItem = ({item}: {item: Peripheral}) => {
-    const backgroundColor = item.connected ? '#069400' : Colors.white;
+    const backgroundColor = item?.connected ? '#069400' : Colors.white;
+    console.debug('item: ', item);
     return (
       <TouchableHighlight
         underlayColor="#0082FC"
@@ -289,7 +299,7 @@ const BluetoothScreen = () => {
             {item.name} - {item?.advertising?.localName}
             {item.connecting && ' - Connecting...'}
           </Text>
-          <Text style={styles.rssi}>RSSI: {item.rssi}</Text>
+          <Text style={styles.rssi}>{getRssi(item.rssi)}</Text>
           <Text style={styles.peripheralId}>{item.id}</Text>
         </View>
       </TouchableHighlight>

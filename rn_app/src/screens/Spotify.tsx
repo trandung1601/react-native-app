@@ -1,7 +1,3 @@
-import {playlist, PlaylistType} from '../constants/playlist';
-import {ChevronLeft} from '../icons/ChevronLeft';
-import {EllipsisHorizontal} from '../icons/EllipsisHorizontal';
-import {EllipsisVertical} from '../icons/EllipsisVertical';
 import React from 'react';
 import {
   Dimensions,
@@ -22,6 +18,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import tailwind from 'twrnc';
+
+import {playlist, PlaylistType} from '../constants/playlist';
+import {ChevronLeft} from '../icons/ChevronLeft';
+import {EllipsisHorizontal} from '../icons/EllipsisHorizontal';
+import {EllipsisVertical} from '../icons/EllipsisVertical';
 
 const formatter = Intl.NumberFormat('en-IN');
 
